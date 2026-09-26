@@ -4,7 +4,7 @@
    =================================================== */
 
 const firebaseConfig = {
-    apiKey:            "AIzaSyAEwowOnTVl5GMwvV3RkBtqyBjQ22wWd9Q",
+    apiKey:            "AIzaSyAEwowOnTVl5GMwvV3RkBtqyBJq22wWd9Q",
     authDomain:        "subjects-online-2nd.firebaseapp.com",
     databaseURL:       "https://subjects-online-2nd-default-rtdb.firebaseio.com",
     projectId:         "subjects-online-2nd",
@@ -14,12 +14,19 @@ const firebaseConfig = {
     measurementId:     "G-K1X2DPXCFC"
 };
 
-firebase.initializeApp(firebaseConfig);
-
-function getFirebaseDB() {
-    return firebase.firestore();
+if (typeof firebase !== "undefined" && !firebase.apps.length) {
+    try {
+        firebase.initializeApp(firebaseConfig);
+        console.log("Firebase initialized in Admin Console");
+    } catch (err) {
+        console.error("Firebase init error:", err);
+    }
 }
 
-function getFirebaseAuth() {
-    return firebase.auth();
+function getFirestoreDB() {
+    if (typeof firebase === "undefined") return null;
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    return firebase.firestore();
 }

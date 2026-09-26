@@ -1,34 +1,26 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subjects Online 2 — Super Admin Panel</title>
+    <title>Subjects Online — Master Admin Command Center</title>
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-
-    <!-- Tailwind CSS (CDN for standalone admin app) -->
+    <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        heading: ['Plus Jakarta Sans', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
                     colors: {
                         brand: {
                             50: '#f0f9ff',
+                            100: '#e0f2fe',
                             500: '#0ea5e9',
                             600: '#0284c7',
                             700: '#0369a1',
+                            900: '#0c4a6e',
                         }
                     }
                 }
@@ -36,287 +28,522 @@
         }
     </script>
 
-    <!-- Custom CSS -->
+    <!-- Custom Luxury Stylesheet -->
     <link rel="stylesheet" href="css/admin.css">
 
-    <!-- Favicon / Meta -->
-    <meta name="theme-color" content="#020617">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <!-- Firebase SDKs (Compat v9) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 
-<body class="bg-slate-950 text-slate-100 antialiased min-h-screen selection:bg-sky-500 selection:text-white">
+<body class="bg-[#060911] text-slate-100 min-h-screen antialiased selection:bg-sky-500/30 selection:text-sky-400">
 
-    <div class="bg-gradient"></div>
+    <!-- Ambient Glows -->
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
 
-    <!-- Toast Notifications Container -->
-    <div id="toast-container"></div>
+    <!-- ========================================================================= -->
+    <!-- 1. ADMIN SECURITY AUTH SHIELD (Login Screen)                              -->
+    <!-- ========================================================================= -->
+    <div id="admin-login-overlay" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#05070d]/90 backdrop-blur-2xl">
+        <div class="glass-panel w-full max-w-md rounded-[2.5rem] p-8 sm:p-10 shadow-2xl relative overflow-hidden border border-slate-700/50">
+            <!-- Decorative Accent Gradient -->
+            <div class="absolute -top-20 -right-20 w-48 h-48 bg-sky-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -left-20 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
-    <!-- ─────────────────────────────────────────────────────────────────────────
-         1. ADMIN LOGIN SCREEN (Default / When unauthenticated)
-    ─────────────────────────────────────────────────────────────────────────── -->
-    <div id="admin-login-screen" class="login-screen">
-        <div class="login-card">
-            <div class="login-logo">
-                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-            </div>
-
-            <div class="text-center mb-6">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 mb-3">
-                    <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-                    2nd Year Management
+            <div class="text-center relative z-10 mb-8">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-600 text-white font-extrabold text-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-sky-500/30 border border-white/20">
+                    ⚡
                 </div>
-                <h1 class="text-2xl font-bold font-heading text-slate-900 dark:text-white tracking-tight">Admin Portal</h1>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Subjects Online — Faculty of Commerce</p>
+                <h1 class="text-2xl font-extrabold tracking-tight shimmer-text font-heading">Command Center</h1>
+                <p class="text-xs text-slate-400 mt-1.5 font-medium">Authorized administrator access only</p>
             </div>
 
-            <form id="admin-login-form" onsubmit="event.preventDefault(); attemptAdminLogin();">
-                <div class="mb-4">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                        Master Access Key
-                    </label>
+            <!-- Passcode Form -->
+            <form id="admin-login-form" class="space-y-4 relative z-10">
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">Master Admin Passcode</label>
                     <div class="relative">
-                        <input type="password" id="admin-password-input" class="login-input pr-10" placeholder="Enter admin password..." autocomplete="current-password" required>
-                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                            </svg>
-                        </div>
+                        <input type="password" id="admin-passcode-input" placeholder="Enter master passcode..."
+                            class="luxury-input w-full px-4 py-3.5 pr-12 rounded-xl text-sm font-semibold transition-all">
+                        <button type="button" id="toggle-passcode-view-btn" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-sky-400 p-1 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </button>
                     </div>
                 </div>
 
-                <div id="admin-login-error" class="hidden text-xs text-rose-500 font-semibold mb-4 bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-lg"></div>
+                <div id="admin-login-error" class="text-xs font-bold text-rose-400 text-center hidden p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20"></div>
 
-                <button type="submit" class="login-btn">
-                    Authenticate & Access
+                <button type="submit"
+                    class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50 transition-all transform hover:-translate-y-0.5">
+                    Sign In to Console
                 </button>
             </form>
 
-            <div class="text-center mt-6 text-[11px] text-slate-400">
-                Connected to Firebase Cloud Firestore
+            <div class="relative my-6 text-center">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
+                <span class="relative px-3 bg-[#0c111d] text-[11px] font-bold uppercase text-slate-400">OR</span>
             </div>
+
+            <!-- Google Admin Login Button -->
+            <button type="button" id="admin-google-login-btn"
+                class="w-full py-3 px-4 rounded-xl border border-slate-700 bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-bold text-xs flex items-center justify-center gap-2.5 transition-all hover:border-slate-600">
+                <svg class="w-4 h-4" viewBox="0 0 48 48">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                <span>Continue with Admin Google Account</span>
+            </button>
         </div>
     </div>
 
+    <!-- ========================================================================= -->
+    <!-- 2. MAIN ADMIN CONSOLE (Shown after authentication)                        -->
+    <!-- ========================================================================= -->
+    <div id="admin-main-content" class="hidden min-h-screen flex flex-col relative z-10">
 
-    <!-- ─────────────────────────────────────────────────────────────────────────
-         2. ADMIN MAIN DASHBOARD (When authenticated)
-    ─────────────────────────────────────────────────────────────────────────── -->
-    <div id="admin-dashboard" class="hidden">
+        <!-- Top Header Navigation -->
+        <header class="glass-panel sticky top-0 z-40 border-b border-slate-800/80 px-4 sm:px-8 py-3.5">
+            <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
 
-        <!-- Top Navigation Bar -->
-        <header class="admin-header">
-            <div class="header-content">
-                <div class="header-title">
-                    <div class="header-logo">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
+                <!-- Left: Brand Logo & Live Ping Indicator -->
+                <div class="flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-600 text-white font-extrabold flex items-center justify-center shadow-lg shadow-sky-500/25 border border-white/20 text-lg">
+                        ⚡
                     </div>
                     <div>
-                        <div class="flex items-center gap-2">
-                            <h2 class="font-heading font-extrabold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight">Subjects Online 2</h2>
-                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                                <span class="live-dot"></span>
-                                LIVE FIRESTORE
-                            </span>
+                        <div class="flex items-center gap-2.5">
+                            <h1 class="font-extrabold text-base sm:text-lg tracking-tight text-white font-heading">Subjects Online Admin</h1>
+                            <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30">PRO V3.0</span>
                         </div>
-                        <p class="text-xs text-slate-400 hidden sm:block">2nd Year Student Registry & Control Center</p>
+                        <!-- Live Connection Status -->
+                        <div class="flex items-center gap-2 mt-0.5 cursor-pointer hover:opacity-90 transition-opacity" id="connection-status-wrapper" onclick="openRulesHelperModal()" title="Click to view Firebase connection details & rules">
+                            <span id="stream-status-dot" class="pulse-connecting"></span>
+                            <span id="stream-status-text" class="text-[11px] font-bold text-amber-400">Connecting to Firestore...</span>
+                            <span class="text-[10px] text-slate-500 underline hidden sm:inline">(Help / Rules)</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="header-actions">
-                    <!-- Refresh Time Indicator -->
-                    <div class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-500">
-                        <span>Last sync:</span>
-                        <span id="last-refresh-time" class="font-mono font-semibold text-slate-700 dark:text-slate-300">--:--:--</span>
+                <!-- Right: Action Tools & Admin User -->
+                <div class="flex items-center gap-2 sm:gap-3">
+
+                    <!-- Theme Toggle Button -->
+                    <button type="button" id="admin-theme-btn" onclick="toggleAdminTheme()"
+                        class="p-2.5 rounded-xl border border-slate-700/80 bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 hover:text-sky-400 transition-all flex items-center gap-1.5 text-xs font-bold"
+                        title="Toggle Light / Dark Mode">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                        <span class="hidden md:inline">Theme</span>
+                    </button>
+
+                    <!-- Force Re-Sync Button -->
+                    <button type="button" id="admin-sync-btn"
+                        class="p-2.5 rounded-xl border border-slate-700/80 bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 hover:text-sky-400 transition-all flex items-center gap-1.5 text-xs font-bold"
+                        title="Force sync now">
+                        <svg id="sync-icon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span class="hidden md:inline">Sync</span>
+                    </button>
+
+                    <!-- Add Student Manually Button -->
+                    <button type="button" onclick="openAddStudentModal()"
+                        class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold shadow-md shadow-sky-500/25 transition-all flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                        <span class="hidden sm:inline">Add Student</span>
+                    </button>
+
+                    <!-- Export Dropdown / Button -->
+                    <button type="button" id="export-csv-btn"
+                        class="px-3 py-2 rounded-xl border border-slate-700/80 bg-slate-800/60 hover:bg-slate-700/80 text-slate-200 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5"
+                        title="Export Database to CSV">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span class="hidden md:inline">Export CSV</span>
+                    </button>
+
+                    <!-- Admin Profile Pill -->
+                    <div class="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-700/60 bg-slate-800/40">
+                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-white font-bold text-xs flex items-center justify-center">A</div>
+                        <span class="text-xs font-bold text-slate-200" id="admin-user-display-name">Ahmed Tamer</span>
                     </div>
 
-                    <!-- Manual Refresh Button -->
-                    <button type="button" onclick="initDashboard(); showToast('Syncing', 'Fetching latest data from Cloud Firestore...', 'info');" class="header-btn" title="Refresh Live Data">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                    </button>
-
-                    <!-- Dark Mode Toggle -->
-                    <button type="button" id="dark-mode-btn" onclick="toggleDarkMode()" class="header-btn" title="Toggle Theme">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                        </svg>
-                    </button>
-
                     <!-- Logout Button -->
-                    <button type="button" onclick="adminLogout()" class="header-btn text-rose-500 hover:text-rose-600 hover:border-rose-500" title="Exit Admin Panel">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                        </svg>
+                    <button type="button" id="admin-logout-btn"
+                        class="p-2.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/15 border border-rose-500/30 transition-all flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span class="hidden sm:inline">Sign Out</span>
                     </button>
                 </div>
             </div>
         </header>
 
-        <!-- Metric Cards -->
-        <section class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon stat-icon-total">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
+        <!-- Dynamic Permission Error Alert Banner -->
+        <div id="permission-error-banner" class="hidden max-w-7xl w-full mx-auto px-4 sm:px-8 pt-4">
+            <div class="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-rose-950/80 to-slate-900/90 border border-rose-500/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex items-start gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0 text-xl font-bold">
+                        ⚠️
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-rose-300">Firebase Firestore Rule Permission Required</h3>
+                        <p class="text-xs text-slate-300 mt-1">Firestore rejected the stream because security rules need to allow access for <code class="bg-black/40 px-1.5 py-0.5 rounded text-rose-200 font-mono">students_registry</code>.</p>
+                    </div>
                 </div>
-                <div>
-                    <div id="stat-total" class="stat-value">0</div>
-                    <div class="stat-label">Total Registered Students</div>
+                <div class="flex items-center gap-2.5 w-full md:w-auto">
+                    <button type="button" onclick="openRulesHelperModal()" class="flex-1 md:flex-none px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition-all">
+                        Fix in 1 Click (View Rules)
+                    </button>
+                    <button type="button" onclick="document.getElementById('permission-error-banner').classList.add('hidden')" class="p-2 rounded-xl text-slate-400 hover:text-white">
+                        ✕
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Body -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+            <!-- ========================================================================= -->
+            <!-- 3. TOP METRIC STATS CARDS (5 KPI Indicators)                              -->
+            <!-- ========================================================================= -->
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
+
+                <!-- 1. Total Students -->
+                <div class="glass-card rounded-2xl p-4 sm:p-5 col-span-2 sm:col-span-1">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Students</span>
+                        <div class="w-8 h-8 rounded-lg bg-sky-500/15 text-sky-400 flex items-center justify-center font-bold text-sm">👥</div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-black text-white font-heading" id="stat-total-students">0</div>
+                    <div class="text-[10px] font-semibold text-sky-400 mt-1 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> Registered Users
+                    </div>
+                </div>
+
+                <!-- 2. Active Accounts -->
+                <div class="glass-card rounded-2xl p-4 sm:p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active</span>
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold text-sm">⚡</div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-black text-emerald-400 font-heading" id="stat-active-students">0</div>
+                    <div class="text-[10px] font-semibold text-slate-400 mt-1">Normal access</div>
+                </div>
+
+                <!-- 3. Google Auth -->
+                <div class="glass-card rounded-2xl p-4 sm:p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Google Auth</span>
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold text-sm">G</div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-black text-blue-400 font-heading" id="stat-google-students">0</div>
+                    <div class="text-[10px] font-semibold text-slate-400 mt-1">Verified Google</div>
+                </div>
+
+                <!-- 4. Direct Passwords -->
+                <div class="glass-card rounded-2xl p-4 sm:p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Direct Pass</span>
+                        <div class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center font-bold text-sm">🔑</div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-black text-amber-400 font-heading" id="stat-manual-students">0</div>
+                    <div class="text-[10px] font-semibold text-slate-400 mt-1">Name &amp; password</div>
+                </div>
+
+                <!-- 5. Suspended / Blocked -->
+                <div class="glass-card rounded-2xl p-4 sm:p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Suspended</span>
+                        <div class="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center font-bold text-sm">🚫</div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-black text-rose-400 font-heading" id="stat-blocked-students">0</div>
+                    <div class="text-[10px] font-semibold text-rose-400/80 mt-1">Blocked accounts</div>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-icon stat-icon-google">
-                    <svg class="w-6 h-6" viewBox="0 0 48 48">
-                        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
-                        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
-                        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
-                        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
-                    </svg>
-                </div>
-                <div>
-                    <div id="stat-google" class="stat-value">0</div>
-                    <div class="stat-label">Google Auth Users</div>
-                </div>
-            </div>
+            <!-- ========================================================================= -->
+            <!-- 4. INTERACTIVE SEARCH & FILTERS BAR                                       -->
+            <!-- ========================================================================= -->
+            <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-3.5">
+                <!-- Search Input + Quick Actions -->
+                <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                    <!-- Search Field -->
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </span>
+                        <input type="text" id="admin-search-input" placeholder="Search by name, email, department, password, or student ID..."
+                            class="luxury-input w-full pl-10 pr-10 py-2.5 rounded-xl text-xs font-semibold placeholder:text-slate-500">
+                        <button type="button" id="clear-search-btn" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white hidden">✕</button>
+                    </div>
 
-            <div class="stat-card">
-                <div class="stat-icon stat-icon-manual">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                    </svg>
-                </div>
-                <div>
-                    <div id="stat-manual" class="stat-value">0</div>
-                    <div class="stat-label">Password Registrations</div>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon stat-icon-blocked">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
-                    </svg>
-                </div>
-                <div>
-                    <div id="stat-blocked" class="stat-value">0</div>
-                    <div class="stat-label">Blocked Accounts</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Main Table Section -->
-        <main class="table-container">
-            <!-- Table Controls / Filters -->
-            <div class="table-header">
-                <div class="search-box">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <input type="text" id="search-input" placeholder="Search by name, email, credentials, or ID...">
-                </div>
-
-                <div class="flex items-center gap-2 flex-wrap">
                     <!-- Auth Method Filter -->
-                    <select id="auth-filter" class="filter-select">
-                        <option value="all">All Auth Types</option>
-                        <option value="google">Google Auth Only</option>
-                        <option value="manual">Password Only</option>
-                    </select>
+                    <div class="flex items-center gap-2">
+                        <select id="filter-auth-select" class="luxury-input px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer">
+                            <option value="all">All Auth Types</option>
+                            <option value="google">Google Verified Only</option>
+                            <option value="manual">Direct Password Only</option>
+                        </select>
 
-                    <!-- Status Filter -->
-                    <select id="status-filter" class="filter-select">
-                        <option value="all">All Statuses</option>
-                        <option value="active">Active Only</option>
-                        <option value="blocked">Blocked Only</option>
-                    </select>
-
-                    <!-- Count Badge -->
-                    <span id="table-count" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        0 Students
-                    </span>
-
-                    <!-- Export Actions -->
-                    <div class="flex items-center gap-1.5 ml-auto">
-                        <button type="button" onclick="exportCSV()" class="export-btn" title="Export as CSV spreadsheet">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                            </svg>
-                            CSV
-                        </button>
-                        <button type="button" onclick="exportJSON()" class="export-btn" title="Export raw JSON">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                            </svg>
-                            JSON
-                        </button>
+                        <!-- Status Filter -->
+                        <select id="filter-status-select" class="luxury-input px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer">
+                            <option value="all">All Statuses</option>
+                            <option value="active">Active Only</option>
+                            <option value="blocked">Suspended Only</option>
+                        </select>
                     </div>
                 </div>
             </div>
 
-            <!-- Table Body Container -->
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th class="hidden sm:table-cell">Auth Method</th>
-                            <th class="hidden md:table-cell">Credentials</th>
-                            <th>Status</th>
-                            <th class="hidden lg:table-cell">Activity</th>
-                            <th class="text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="students-tbody">
-                        <!-- Populated dynamically by admin.js from Firestore -->
-                    </tbody>
-                </table>
+            <!-- ========================================================================= -->
+            <!-- 5. REALTIME STUDENTS TABLE                                                -->
+            <!-- ========================================================================= -->
+            <div class="glass-panel rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
+                <!-- Table Header Bar -->
+                <div class="p-4 sm:p-5 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <h2 class="font-extrabold text-base tracking-tight font-heading text-white">Student Registry &amp; Credentials</h2>
+                            <p class="text-xs text-slate-400 mt-0.5">Live bidirectional sync with Subjects Online platform</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="table-filtered-count" class="text-xs font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-3 py-1 rounded-full">0 students</span>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-800 bg-[#090d18] text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                <th class="px-5 py-3.5">Student</th>
+                                <th class="px-5 py-3.5">Department</th>
+                                <th class="px-5 py-3.5">Auth Method</th>
+                                <th class="px-5 py-3.5">Contact / Email</th>
+                                <th class="px-5 py-3.5">Password Inspector</th>
+                                <th class="px-5 py-3.5">Registration / Activity</th>
+                                <th class="px-5 py-3.5">Status</th>
+                                <th class="px-5 py-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-table-body">
+                            <!-- Populated dynamically in real time -->
+                        </tbody>
+                    </table>
+                </div>
 
                 <!-- Empty State -->
-                <div id="empty-state" class="empty-state hidden">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-                    </svg>
-                    <h3 class="font-heading font-bold text-base text-slate-800 dark:text-slate-200">No Students Yet</h3>
-                    <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">When students log in to Subjects Online, their names, credentials, and activity will show up here automatically.</p>
+                <div id="empty-students-state" class="py-20 text-center hidden">
+                    <div class="w-14 h-14 rounded-2xl bg-slate-800/80 text-slate-400 flex items-center justify-center text-2xl mx-auto mb-3 shadow-inner">
+                        🔍
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-200">No matching student records found</h3>
+                    <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Try clearing your search query or reset filters to see all registered students.</p>
+                    <button type="button" onclick="resetAllFilters()" class="mt-4 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold text-xs transition-all">
+                        Reset All Filters
+                    </button>
                 </div>
             </div>
+
         </main>
+
+        <!-- Footer -->
+        <footer class="text-center py-6 text-xs text-slate-500 border-t border-slate-800/60 mt-auto">
+            Subjects Online Master Admin Command Center &bull; Designed &amp; Developed for Ahmed Tamer
+        </footer>
     </div>
 
+    <!-- ========================================================================= -->
+    <!-- 6. MODALS                                                                 -->
+    <!-- ========================================================================= -->
 
-    <!-- ─────────────────────────────────────────────────────────────────────────
-         3. CONFIRMATION MODAL
-    ─────────────────────────────────────────────────────────────────────────── -->
-    <div id="confirm-modal" class="modal-overlay hidden">
-        <div class="modal-backdrop"></div>
-        <div class="modal-card">
-            <h3 class="modal-title">Confirm Action</h3>
-            <div class="modal-message">Are you sure you want to proceed?</div>
-            <div class="modal-actions">
-                <button type="button" class="modal-cancel-btn">Cancel</button>
-                <button type="button" class="modal-confirm-btn">Confirm Delete</button>
+    <!-- Modal 1: Firestore Security Rules Helper -->
+    <div id="rules-helper-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="glass-panel w-full max-w-xl rounded-3xl p-6 sm:p-8 border border-sky-500/30 shadow-2xl relative">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-xl font-bold">
+                        🔒
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-extrabold text-base text-white">Firebase Security Rules Guide</h3>
+                        <p class="text-xs text-slate-400">One-time copy to fix "Missing or insufficient permissions"</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeRulesHelperModal()" class="text-slate-400 hover:text-white p-1">✕</button>
+            </div>
+
+            <div class="space-y-3.5 text-xs text-slate-300">
+                <p>To allow the admin panel and students to connect without permission blocks, paste these rules in your Firebase Console:</p>
+                <div class="bg-[#04060b] p-4 rounded-xl border border-slate-800 font-mono text-[11px] relative overflow-x-auto text-sky-300 select-all" id="firestore-rules-snippet">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /students_registry/{studentId} {
+      allow read, write: if true;
+    }
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <a href="https://console.firebase.google.com/project/subjects-online-2/firestore/rules" target="_blank" rel="noopener noreferrer"
+                        class="text-sky-400 hover:underline flex items-center gap-1 font-bold">
+                        <span>Open Firebase Rules Console</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
+                    <button type="button" onclick="copyRulesSnippet(this)"
+                        class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold transition-all shadow-md shadow-sky-500/20">
+                        Copy Rules
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal 2: Edit Student Details Modal -->
+    <div id="edit-student-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 border border-slate-700 shadow-2xl relative">
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xl font-bold">
+                        ✏️
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-extrabold text-base text-white">Edit Student Record</h3>
+                        <p class="text-xs text-slate-400" id="edit-modal-student-id">ID: ---</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeEditStudentModal()" class="text-slate-400 hover:text-white p-1">✕</button>
+            </div>
 
-    <!-- ─────────────────────────────────────────────────────────────────────────
-         4. FIREBASE COMPAT SDKs (v9.23.0) & APPLICATION SCRIPTS
-    ─────────────────────────────────────────────────────────────────────────── -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+            <form id="edit-student-form" class="space-y-4">
+                <input type="hidden" id="edit-student-doc-id">
 
-    <!-- App Configuration & Logic -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Full Name</label>
+                    <input type="text" id="edit-student-name" required class="luxury-input w-full px-4 py-2.5 rounded-xl text-xs font-semibold">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Email</label>
+                    <input type="email" id="edit-student-email" class="luxury-input w-full px-4 py-2.5 rounded-xl text-xs font-semibold">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Department</label>
+                    <select id="edit-student-dept" class="luxury-input w-full px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer">
+                        <option value="Accounting">Accounting (محاسبة)</option>
+                        <option value="Business Administration">Business Administration (إدارة أعمال)</option>
+                        <option value="Economics">Economics (اقتصاد)</option>
+                        <option value="Statistics">Statistics (إحصاء)</option>
+                        <option value="Financial & Customs Studies">Financial &amp; Customs Studies (جمارك ومالية)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+                    <input type="text" id="edit-student-password" class="luxury-input w-full px-4 py-2.5 rounded-xl text-xs font-mono font-bold text-amber-300">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Account Status</label>
+                    <select id="edit-student-status" class="luxury-input w-full px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer">
+                        <option value="active">Active (Full Platform Access)</option>
+                        <option value="blocked">Suspended / Blocked</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeEditStudentModal()" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs shadow-md transition-all">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Add Student Modal -->
+    <div id="add-student-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 border border-slate-700 shadow-2xl relative">
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-xl font-bold">
+                        ➕
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-extrabold text-base text-white">Create New Student</h3>
+                        <p class="text-xs text-slate-400">Add a student directly into the cloud database</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAddStudentModal()" class="text-slate-400 hover:text-white p-1">✕</button>
+            </div>
+
+            <form id="add-student-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Full Name *</label>
+                    <input type="text" id="add-student-name" required placeholder="e.g. Mahmoud Ali" class="luxury-input w-full px-4 py-2.5 rounded-xl text-xs font-semibold">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Email (Optional)</label>
+                    <input type="email" id="add-student-email" placeholder="e.g. mahmoud@gmail.com" class="luxury-input w-full px-4 py-2.5 rounded-xl text-xs font-semibold">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Department *</label>
+                    <select id="add-student-dept" class="luxury-input w-full px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer">
+                        <option value="Accounting">Accounting (محاسبة)</option>
+                        <option value="Business Administration">Business Administration (إدارة أعمال)</option>
+                        <option value="Economics">Economics (اقتصاد)</option>
+                        <option value="Statistics">Statistics (إحصاء)</option>
+                        <option value="Financial & Customs Studies">Financial &amp; Customs Studies (جمارك ومالية)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Password *</label>
+                    <input type="text" id="add-student-password" required placeholder="Create student password..." class="luxury-input w-full px-4 py-2.5 rounded-xl text-xs font-mono font-bold text-amber-300">
+                </div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeAddStudentModal()" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs shadow-md transition-all">Create Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
     <script src="js/firebase-config.js"></script>
     <script src="js/admin.js"></script>
+    <script>
+        function toggleAdminTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('so_admin3_theme', isDark ? 'dark' : 'light');
+            updateThemeIcon();
+        }
+        function updateThemeIcon() {
+            const btn = document.getElementById('admin-theme-btn');
+            if (!btn) return;
+            const isDark = document.documentElement.classList.contains('dark');
+            btn.innerHTML = isDark
+                ? '<svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg><span class="hidden md:inline">Dark</span>'
+                : '<svg class="w-4 h-4 text-slateF-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg><span class="hidden md:inline">Light</span>';
+        }
+        // Initialize theme (Defaults to Light Mode)
+        if (localStorage.getItem('so_admin3_theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        updateThemeIcon();
+    </script>
 </body>
 
 </html>
